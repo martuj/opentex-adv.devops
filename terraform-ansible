@@ -31,3 +31,73 @@ sudo chmod +x terraform.sh
 
 . ./terraform.sh 
 
+
+============================================================================
+Task-2: Null resources
+----------------------------------------------------------------------------
+
+vi  mynullresource.tf 
+
+
+provider "google" {
+  project = "deloitte-team2"
+  region  = "us-central1"
+  zone    = "us-central1-a"
+}
+
+
+# Create a Google Compute Engine instance
+resource "google_compute_instance" "vm_instance" {
+  name         = "example-instance"
+  machine_type = "e2-micro"
+
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-11"
+    }
+  }
+
+  network_interface {
+    network = "default1"
+    access_config {}
+  }
+}
+
+# Use a null resource to execute a local script after the VM is created
+resource "null_resource" "post_creation_script" {
+  # Define the dependency on the VM instance
+  depends_on = [google_compute_instance.vm_instance]
+
+  # Define a local script to be executed
+  provisioner "local-exec" {
+    command = "echo 'VM instance created: ${google_compute_instance.vm_instance.name}' >> post_create.sh"
+  }
+}
+
+output "instance_name" {
+  value = google_compute_instance.vm_instance.name
+}
+
+save the file :wq enter
+
+
+Run the commands
+
+terraform init
+terraform fmt
+terraform validate
+terraform plan
+terraform apply
+terraform destroy
+
+self task example2:-
+
+resource "null_resource" "null_resource_simple" {
+   triggers = {
+      id = timestamp()
+   }
+   provisioner "local-exec" {
+      command = "echo Hello World"
+   }
+}
+
