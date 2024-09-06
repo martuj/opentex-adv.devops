@@ -1,0 +1,33 @@
+Terraform Labs Steps
+====================
+
+Login to GCP Console
+
+
+###################################
+Lab 1: Creating an VM Instance in GCP and Installing Terraform
+###################################
+
+Task 1: Installing Terraform on Ubuntu 22.04 operating system
+=============================================================
+After VM is ready:
+
+
+vi terraform.sh
+
+sudo apt update
+sudo apt install wget unzip -y
+wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update && sudo apt install terraform
+terraform -v
+
+
+save the file :wq
+
+Provide the permission and run the script
+----------------------------------------
+sudo chmod +x terraform.sh 
+
+. ./terraform.sh 
+
