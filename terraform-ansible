@@ -223,4 +223,218 @@ terraform apply
 # user the output ip and check weather you can access the web page..
 
 terraform destroy
+======================================================
+
+Modules
+-----------------------------------------------------------------------------
+
+martuj25_mn@martuj-test:~/mod$ pwd
+/home/martuj25_mn/mod
+
+# create dir
+ mkdir -p mod/modules/gcp_instance
+ cd mod/modules/gcp_instance
+
+martuj25_mn@martuj-test:~/mod$ tree
+.
+├── main.tf
+├── modules
+│   └── gcp_instance
+│       ├── main.tf
+│       ├── outputs.tf
+│       └── variables.tf
+├── outputs.tf
+├── terraform.tfstate
+├── terraform.tfstate.backup
+└── variables.tf
+
+
+# create file as below 
+
+martuj25_mn@martuj-test:~/mod/modules/gcp_instance$ 
+
+vi main.tf 
+
+provider "google" {
+  project = var.project_id
+  region  = var.region
+}
+
+resource "google_compute_instance" "vm_instance" {
+  name         = var.instance_name
+  machine_type = var.machine_type
+  zone         = var.zone
+
+  boot_disk {
+    initialize_params {
+      image = var.image
+    }
+  }
+
+  network_interface {
+    network = "default1"
+    access_config {}
+  }
+
+  tags = var.tags
+}
+
+
+save the file
+
+martuj25_mn@martuj-test:~/mod/modules/gcp_instance$ 
+
+vi  outputs.tf 
+
+output "instance_name" {
+  value = google_compute_instance.vm_instance.name
+}
+
+output "instance_self_link" {
+  value = google_compute_instance.vm_instance.self_link
+}
+
+output "instance_ip" {
+  value = google_compute_instance.vm_instance.network_interface[0].access_config[0].nat_ip
+}
+
+save the file
+
+martuj25_mn@martuj-test:~/mod/modules/gcp_instance$ 
+
+vi variables.tf 
+
+# Define variables for the module
+
+variable "project_id" {
+  type        = string
+  description = "The GCP project ID"
+}
+
+variable "region" {
+  type        = string
+  description = "The region to deploy the instance"
+}
+
+variable "zone" {
+  type        = string
+  description = "The GCP zone"
+}
+
+variable "instance_name" {
+  type        = string
+  description = "The name of the VM instance"
+}
+
+variable "machine_type" {
+  type        = string
+  description = "The type of machine (e.g., e2-micro, n1-standard-1)"
+}
+
+variable "image" {
+  type        = string
+  description = "The image to use for the boot disk"
+}
+
+
+variable "tags" {
+  type        = list(string)
+  description = "Tags to attach to the instance"
+  default     = []
+}
+
+
+save the file
+
+
+cd ../..
+
+# you should be in mod dir
+
+martuj25_mn@martuj-test:~/mod$ 
+vi main.tf 
+
+provider "google" {
+  project = "deloitte-team2"
+  region  = "us-central1"
+  zone    = "us-central1-a"
+}
+
+
+module "vm_instance_1" {
+  source = "./modules/gcp_instance"
+
+  project_id    = var.project_id
+  region        = var.region
+  zone          = var.zone
+  instance_name = "web-server-1"
+  machine_type  = "e2-micro"
+  image         = "debian-cloud/debian-11"
+ # network       = "default1"
+  tags          = ["web", "nginx"]
+}
+
+module "vm_instance_2" {
+  source = "./modules/gcp_instance"
+
+  project_id    = var.project_id
+  region        = var.region
+  zone          = var.zone
+  instance_name = "web-server-2"
+  machine_type  = "e2-micro"
+  image         = "debian-cloud/debian-11"
+  #network       = "default1"
+  tags          = ["web", "nginx"]
+}
+
+save the file
+
+martuj25_mn@martuj-test:~/mod$ 
+
+vi outputs.tf
+ 
+output "vm_instance_1_ip" {
+  value = module.vm_instance_1.instance_ip
+}
+
+output "vm_instance_2_ip" {
+  value = module.vm_instance_2.instance_ip
+}
+
+
+save the file
+
+martuj25_mn@martuj-test:~/mod$ 
+
+vi variables.tf 
+
+variable "project_id" {
+  type        = string
+  description = "The GCP project ID"
+}
+
+variable "region" {
+  type        = string
+  description = "The region to deploy the instance"
+}
+
+variable "zone" {
+  type        = string
+  description = "The GCP zone to deploy the instance"
+}
+
+save the file
+
+
+# now  type the command tree (if not install install it apt install tree -y)
+
+
+Run the commands
+
+terraform init
+terraform fmt
+terraform validate
+terraform plan
+terraform apply
+terraform destroy
 
