@@ -31,6 +31,53 @@ sudo chmod +x terraform.sh
 
 . ./terraform.sh 
 
+Create VM using terraform
+===============================
+1) Authenticate 
+gcloud auth application-default login  
+ 
+and follow the instructions
+
+2) create dir test and create file
+vi myfirstvm.tf 
+
+provider "google" {
+  project = "deloitte-team2"
+  region  = "us-central1"
+  zone    = "us-central1-a"
+}
+
+3) create file
+
+vi resorce.tf 
+resource "google_compute_instance" "vm_instance" {
+  count = 2
+  name = "ansible-node-${count.index}"
+  machine_type = "e2-small"
+  boot_disk {
+    initialize_params {
+      image = "ubuntu-2204-lts"
+    }
+  }
+
+  network_interface {
+    # A default network is created for all GCP projects
+    network = "default"
+    access_config {
+    }
+  }
+}
+
+save the file :wq-enter
+
+Now run commands
+
+terraform init
+terraform fmt
+terraform validate
+terraform plan
+terraform apply
+terraform destroy
 
 ============================================================================
 Task-2: Null resources
