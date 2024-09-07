@@ -438,3 +438,263 @@ terraform plan
 terraform apply
 terraform destroy
 
+=============================================================
+
+Terragrunt
+-------------------------------
+
+
+hello-gcs/
+├── terragrunt.hcl
+└── gcs/
+    └── main.tf
+
+vi main.tf
+
+# gcs/main.tf
+provider "google" {
+  project = var.project_id
+  region  = var.region
+}
+
+resource "google_storage_bucket" "hello_bucket" {
+  name                        = var.bucket_name
+  location                    = var.region
+  force_destroy               = true
+  storage_class               = "STANDARD"
+  uniform_bucket_level_access = true
+
+  labels = {
+    environment = "dev"
+    name        = var.bucket_name
+  }
+}
+
+output "bucket_name" {
+  value = google_storage_bucket.hello_bucket.name
+}
+
+# Define input variables
+variable "project_id" {
+  description = "The GCP project ID"
+  type        = string
+}
+
+variable "region" {
+  description = "GCP region"
+  type        = string
+}
+
+variable "bucket_name" {
+  description = "The name of the GCS bucket"
+  type        = string
+}
+
+
+vi terragrunt.hcl
+
+# terragrunt.hcl
+terraform {
+  source = "./gcs"
+}
+
+inputs = {
+  project_id  = "my-gcp-project-id"
+  region      = "us-central1"
+  bucket_name = "hello-world-terragrunt-gcs"
+}
+
+
+terragrunt init
+terragrunt apply
+
+=====================================================
+
+Ansible
+--------------------------
+
+vi lab2.yml 
+---
+- name: Example Playbook for Error Handling
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install a package (example)
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - nginx
+        - git
+      register: result
+      ignore_errors: yes
+
+    - name: Check if there were any errors during the package installation
+      debug:
+        msg: "There were errors installing some packages."
+      when: result.results | selectattr('failed', 'equalto', True) | list | length > 0
+
+    - name: Fail the playbook if package installation failed
+      fail:
+        msg: "Package installation failed."
+      when: result.results | selectattr('failed', 'equalto', True) | list | length > 0
+
+    - name: Perform cleanup if necessary
+      command: /bin/echo "Cleaning up..."
+      when: result.results | selectattr('failed', 'equalto', True) | list | length > 0
+
+    - name: Ensure that the nginx service is running
+      service:
+        name: nginx
+        state: started
+      ignore_errors: yes
+
+    - name: Notify if nginx is not running
+      debug:
+        msg: "Nginx service failed to start."
+      when: result.results | selectattr('item', 'equalto', 'nginx') | selectattr('failed', 'equalto', True) | list | length > 0
+
+
+===================================
+
+vi lab4.yml 
+---
+- name: Debugging Playbook Example
+  hosts: all
+  become: yes
+  tasks:
+    - name: Show hostname
+      debug:
+        msg: "The hostname is {{ inventory_hostname }}"
+
+    - name: Show all variables
+      debug:
+        var: vars
+
+    - name: Show facts
+      debug:
+        var: ansible_facts
+
+    - name: Check if the nginx package is installed
+      command: dpkg -l | grep nginx
+      register: nginx_status
+      ignore_errors: yes
+
+    - name: Show nginx package status
+      debug:
+        msg: "Nginx package status: {{ nginx_status.stdout }}"
+      when: nginx_status.rc == 0
+
+    - name: Fail if nginx package is not installed
+      fail:
+        msg: "Nginx package is not installed!"
+      when: nginx_status.rc != 0
+
+    - name: Set fact for sample computation
+      set_fact:
+        sample_computation: "{{ 2 * 5 }}"
+
+    - name: Print the result of a sample computation
+      debug:
+        msg: "The result of the computation is {{ sample_computation }}"
+
+    - name: Display a custom message based on a variable
+      debug:
+        msg: "Custom message: The value is {{ custom_variable }}"
+      vars:
+        custom_variable: "Hello, Ansible!"
+
+    - name: Show all registered variables
+      debug:
+        var: hostvars[inventory_hostname]
+
+=============================================
+
+vi lab5.yml 
+---
+- name: Demonstrate Ansible Check Mode
+  hosts: all
+  become: yes
+  tasks:
+    - name: Ensure nginx is installed
+      apt:
+        name: nginx
+        state: present
+      check_mode: yes  # Run this task in check mode
+
+    - name: Ensure a file is present
+      file:
+        path: /tmp/example_file.txt
+        state: touch
+      check_mode: yes  # Run this task in check mode
+
+    - name: Ensure a directory is present
+      file:
+        path: /tmp/example_directory
+        state: directory
+      check_mode: yes  # Run this task in check mode
+
+    - name: Print a message for check mode
+      debug:
+        msg: "This task is running in check mode. No changes will be made."
+      check_mode: yes  # Run this task in check mode
+
+
+ansible-playbook playbook.yml --check
+
+- name: Install a package
+  apt:
+    name: nginx
+    state: present
+  check_mode: yes  # This task will always run in check mode
+
+- name: Ensure a service is running
+  service:
+    name: nginx
+    state: started
+  check_mode: no  # This task will not run in check mode, even if the global mode is enabled
+
+Self exercise:
+--------------------
+
+vi ansible-error-handling/roles/custom-role/tasks/main.yml
+
+---
+# 1. ignore_errors - Ignoring the error
+- name: index.html copy with ignore_error
+  template: src=index.html dest=/home/ubuntu
+  register: copy_result
+  ignore_errors: true
+
+- name: String Variable from - main_playbook_variable
+  debug:
+    var: copy_result
+
+
+# 2. any_errors_fatal
+- name: index.html copy with failed_when
+  template: src=index.html dest=/home/ubuntu
+  failed_when:
+    - '"Could not find or access" not in copy_result.msg'
+    - copy_result.failed == true
+  any_errors_fatal: false
+#
+#
+- name: Create a file if it does not exist
+  command: touch /home/ubuntu/myfile.txt
+  register: file_created
+  changed_when: file_created.rc == 0
+
+
+vi ansible-error-handling/ansible-error-handling-playbook.yml
+
+
+---
+- name: Example Ansible playbook for Handlers
+  hosts: all
+  become: yes
+  remote_user: ubuntu
+  roles:
+    - custom-role
+
+
